@@ -1,0 +1,6 @@
+{
+  "name": "Breakout Infinito",
+  "description": "Um jogo arcade de sobrevivência sem fim baseado no clássico Breakout, com ondas temáticas de blocos com comportamento próprio, combos, power-ups eletrizantes e alta fidelidade tátil.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
