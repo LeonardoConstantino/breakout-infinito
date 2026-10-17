@@ -111,7 +111,7 @@ export const PowerUpTimers: React.FC<PowerUpTimersProps> = ({ activePowerUps }) 
   };
 
   return (
-    <div className="w-full flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 px-1 py-1">
+    <div className="absolute top-2 inset-x-2 flex flex-wrap items-center justify-center gap-1.5 pointer-events-none z-20 select-none">
       {activePowerUps.map((p) => {
         const config = getPowerUpConfig(p.type);
         const Icon = config.icon;
@@ -120,7 +120,7 @@ export const PowerUpTimers: React.FC<PowerUpTimersProps> = ({ activePowerUps }) 
         return (
           <div
             key={p.type}
-            className={`flex items-center gap-1.5 px-2.5 py-1 bg-slate-900/90 border ${config.border} rounded-xl shadow-md backdrop-blur-sm transition-all`}
+            className={`flex items-center gap-1.5 px-2.5 py-1 bg-slate-950/90 border ${config.border} rounded-xl shadow-lg shadow-black/70 backdrop-blur-md transition-all`}
           >
             <Icon size={12} className={config.text} />
             <span className={`text-[10px] sm:text-xs font-bold font-mono ${config.text}`}>
@@ -129,7 +129,7 @@ export const PowerUpTimers: React.FC<PowerUpTimersProps> = ({ activePowerUps }) 
             <span className="text-[10px] font-mono font-bold text-slate-300 tabular-nums">
               {p.timeLeft}s
             </span>
-            <div className="w-12 h-1 bg-slate-800 rounded-full overflow-hidden ml-1">
+            <div className="w-10 sm:w-12 h-1 bg-slate-800 rounded-full overflow-hidden ml-1">
               <div
                 className={`h-full ${config.color} transition-all duration-300`}
                 style={{ width: `${percentage}%` }}

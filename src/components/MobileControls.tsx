@@ -74,6 +74,7 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
   // Trackpad Touch Handlers
   const handleTrackpadTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     if (e.touches.length === 0) return;
+    if (e.cancelable) e.preventDefault();
     isTouchingRef.current = true;
     const touch = e.touches[0];
     lastTouchXRef.current = touch.clientX;
@@ -90,6 +91,7 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
 
   const handleTrackpadTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
     if (!isTouchingRef.current || e.touches.length === 0) return;
+    if (e.cancelable) e.preventDefault();
     const touch = e.touches[0];
 
     if (lastTouchXRef.current !== null && trackpadRef.current) {

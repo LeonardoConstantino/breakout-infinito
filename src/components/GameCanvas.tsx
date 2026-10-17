@@ -1583,9 +1583,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         combo={hudStats.combo}
       />
 
-      {/* Active Power-up timer bars ribbon - above canvas, non-intrusive */}
-      <PowerUpTimers activePowerUps={hudStats.activePowerUps} />
-
       {/* Canvas container with aspect-ratio */}
       <div className="relative w-full aspect-[4/3] bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 shadow-2xl touch-none">
         {/* HTML5 Game Canvas */}
@@ -1596,6 +1593,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           className="w-full h-full block cursor-crosshair select-none touch-none"
           style={{ imageRendering: 'auto' }}
         />
+
+        {/* Active Power-up timer bars - absolute floating overlay inside canvas, zero layout shift */}
+        <PowerUpTimers activePowerUps={hudStats.activePowerUps} />
       </div>
 
       {/* Dedicated Ergonomic Mobile Controls Dock */}
