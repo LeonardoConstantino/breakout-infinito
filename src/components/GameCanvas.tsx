@@ -9,6 +9,8 @@ import { audio } from './AudioEngine';
 import { LOGICAL_WIDTH, LOGICAL_HEIGHT, getComboMultiplier } from '../utils/gameConstants';
 import { generateWaveBricks } from '../utils/brickGenerator';
 import { GameHUD, PowerUpTimers } from './GameHUD';
+import { MobileControls } from './MobileControls';
+import { haptics } from '../utils/haptics';
 
 interface GameCanvasProps {
   isPlaying: boolean;
@@ -61,6 +63,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     keysPressed: {} as Record<string, boolean>,
     mousePos: { x: 400, y: 0 },
     controlMode: 'mouse' as 'mouse' | 'keyboard',
+    virtualKeyMove: 0 as -1 | 0 | 1,
 
     // Powerup durations (in frames or ms)
     activePowerUps: [] as ActivePowerUp[],
@@ -92,6 +95,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     combo: 0,
     activePowerUps: [] as ActivePowerUp[],
   });
+
+  // Normalized paddle position for MobileControls trackpad indicator (0 to 1)
+  const [paddleNormalizedX, setPaddleNormalizedX] = useState<number>(0.5);
+  const lastNormUpdateRef = useRef<number>(0);
 
   // Initialize/Reset Game when reset token changes or starting
   useEffect(() => {
@@ -207,6 +214,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     if (launchedAny) {
       audio.playLaunch();
+      haptics.launch();
       state.isFirstLaunch = false;
     }
   };
@@ -255,41 +263,45 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     const handleTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 0) return;
+      e.preventDefault();
       const touch = e.touches[0];
       lastTouchX = touch.clientX;
       touchStartX = touch.clientX;
       touchStartY = touch.clientY;
       isDragging = true;
-      
+
       const state = stateRef.current;
       state.controlMode = 'mouse';
     };
 
-    const handleTouchMove = (e: TouchEvent) => {
+    const handleWindowTouchMove = (e: TouchEvent) => {
       const canvas = canvasRef.current;
       if (!canvas || !isDragging || e.touches.length === 0) return;
-      
+      e.preventDefault();
+
       const touch = e.touches[0];
       const deltaX = touch.clientX - lastTouchX;
       lastTouchX = touch.clientX;
-      
+
       const rect = canvas.getBoundingClientRect();
       const logicalDeltaX = (deltaX / rect.width) * LOGICAL_WIDTH;
-      
+
       const state = stateRef.current;
       state.paddle.x += logicalDeltaX;
+      state.paddle.x = Math.max(0, Math.min(LOGICAL_WIDTH - state.paddle.width, state.paddle.x));
       state.mousePos.x = state.paddle.x + state.paddle.width / 2;
       state.controlMode = 'mouse';
     };
 
-    const handleTouchEnd = (e: TouchEvent) => {
+    const handleWindowTouchEnd = (e: TouchEvent) => {
+      if (!isDragging) return;
       isDragging = false;
       const touch = e.changedTouches[0];
       if (touch) {
         const dx = touch.clientX - touchStartX;
         const dy = touch.clientY - touchStartY;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 10) {
+        if (dist < 12) {
           launchBalls();
           const state = stateRef.current;
           if (state.activePowerUps.some((p) => p.type === 'laser')) {
@@ -310,24 +322,24 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('touchmove', handleWindowTouchMove, { passive: false });
+    window.addEventListener('touchend', handleWindowTouchEnd);
 
     const canvas = canvasRef.current;
     if (canvas) {
       canvas.addEventListener('mousemove', handleMouseMove);
-      canvas.addEventListener('touchstart', handleTouchStart, { passive: true });
-      canvas.addEventListener('touchmove', handleTouchMove, { passive: true });
-      canvas.addEventListener('touchend', handleTouchEnd, { passive: true });
+      canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
       canvas.addEventListener('mousedown', handleCanvasClick);
     }
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('touchmove', handleWindowTouchMove);
+      window.removeEventListener('touchend', handleWindowTouchEnd);
       if (canvas) {
         canvas.removeEventListener('mousemove', handleMouseMove);
         canvas.removeEventListener('touchstart', handleTouchStart);
-        canvas.removeEventListener('touchmove', handleTouchMove);
-        canvas.removeEventListener('touchend', handleTouchEnd);
         canvas.removeEventListener('mousedown', handleCanvasClick);
       }
     };
@@ -365,6 +377,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     });
 
     audio.playLaserShot();
+    haptics.laserShot();
   };
 
   // Brick Explosion Chain Reactions
@@ -578,6 +591,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const state = stateRef.current;
     const isGood = powerUp.type !== 'narrow';
     audio.playPowerUp(isGood);
+    haptics.powerUp();
 
     state.powerUpsCollected += 1;
 
@@ -722,65 +736,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           state.score += 15; // Give 15 survival points per second
           syncHudState();
         } else {
-          // Player is static/AFK before launching!
           state.staticSeconds = (state.staticSeconds || 0) + 1;
-
-          if (state.staticSeconds >= 7) {
-            // Deduct points as a funny penalty
-            const penalty = Math.min(250, 25 * (state.staticSeconds - 6));
-            state.score = Math.max(0, state.score - penalty);
-
-            // Floating text above paddle
-            addTextIndicator(
-              state.paddle.x + state.paddle.width / 2,
-              state.paddle.y - 20,
-              `-${penalty} PONTOS POR PREGUIÇA! 💤`,
-              '#f87171'
-            );
-
-            // Comical sound and screenshake
-            audio.playBrickHit('armored', false);
-            state.screenShake = Math.max(state.screenShake, 6);
-          }
-
-          if (state.staticSeconds >= 12) {
-            // EXPLODE!
-            state.lives -= 1;
-            state.staticSeconds = 0;
-            audio.playGameOver(); // play retro explosion
-            state.screenShake = 25; // massive shake!
-
-            // Firey explosion particles
-            spawnParticles(state.paddle.x + state.paddle.width / 2, state.paddle.y - 10, '#ef4444', 35);
-            spawnParticles(state.paddle.x + state.paddle.width / 2, state.paddle.y - 10, '#f97316', 35);
-
-            addTextIndicator(
-              state.paddle.x + state.paddle.width / 2,
-              state.paddle.y - 50,
-              'A BOLA EXPLODIU DE TÉDIO! -1 VIDA! 💥',
-              '#ef4444',
-              1.3
-            );
-
-            if (state.lives <= 0) {
-              onGameOver({
-                score: state.score,
-                wave: state.wave,
-                maxCombo: state.maxCombo,
-                bricksDestroyed: state.bricksDestroyed,
-                timeSurvived: state.timeSurvived,
-                normalDestroyed: state.normalDestroyed,
-                armoredDestroyed: state.armoredDestroyed,
-                explosiveDestroyed: state.explosiveDestroyed,
-                powerUpsCollected: state.powerUpsCollected,
-                ballsLost: state.ballsLost,
-              });
-            } else {
-              state.balls = [];
-              spawnStickyBall();
-            }
-          }
-          syncHudState();
         }
       }
 
@@ -789,6 +745,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
       // 2. RENDER GRAPHICS
       renderGraphics();
+
+      // 3. SYNC PADDLE NORMALIZED POSITION FOR MOBILE CONTROLS TRACKPAD
+      const nowMs = performance.now();
+      if (nowMs - lastNormUpdateRef.current > 40) {
+        lastNormUpdateRef.current = nowMs;
+        const norm = (state.paddle.x + state.paddle.width / 2) / LOGICAL_WIDTH;
+        setPaddleNormalizedX(Math.max(0, Math.min(1, norm)));
+      }
 
       animationFrameId = requestAnimationFrame(gameLoop);
     };
@@ -808,6 +772,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         state.paddle.width += diff * 0.15;
         // Adjust paddle position so it resizes centered
         state.paddle.x -= (diff * 0.15) / 2;
+      }
+
+      // Continuous Virtual Movement from Mobile Arcade Buttons
+      if (state.virtualKeyMove !== 0) {
+        state.paddle.x += state.virtualKeyMove * state.paddle.speed * 1.35;
+        state.mousePos.x = state.paddle.x + state.paddle.width / 2;
       }
 
       // Update Paddle Position via Keyboard / Mouse with priority separation
@@ -870,16 +840,19 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           ball.x = ball.radius;
           ball.vx = -ball.vx;
           audio.playWallBounce();
+          haptics.wallBounce();
         } else if (ball.x + ball.radius >= LOGICAL_WIDTH) {
           ball.x = LOGICAL_WIDTH - ball.radius;
           ball.vx = -ball.vx;
           audio.playWallBounce();
+          haptics.wallBounce();
         }
 
         if (ball.y - ball.radius <= 0) {
           ball.y = ball.radius;
           ball.vy = -ball.vy;
           audio.playWallBounce();
+          haptics.wallBounce();
         }
 
         // Paddle Collision detection (AABB vs Circle)
@@ -907,6 +880,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             ball.vx = 0;
             ball.vy = 0;
             audio.playPaddleBounce();
+            haptics.paddleBounce();
             continue;
           }
 
@@ -929,6 +903,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           ball.y = paddleTopY - ball.radius - 1;
 
           audio.playPaddleBounce();
+          haptics.paddleBounce();
         }
 
         // Brick collisions
@@ -984,6 +959,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
               } else {
                 audio.playBrickHit(brick.type, true);
               }
+              haptics.brickBreak(brick.type);
 
               addComboIndicator(brick.x + brick.width / 2, brick.y, earned, state.currentCombo);
               spawnParticles(brick.x + brick.width / 2, brick.y + brick.height / 2, brick.color, 12);
@@ -1004,6 +980,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             } else {
               // Armored brick got hit but not destroyed
               audio.playBrickHit(brick.type, false);
+              haptics.brickBreak(brick.type);
               if (brick.type === 'armored') {
                 if (brick.hp === 2) brick.color = '#64748b'; // Cracked
                 if (brick.hp === 1) brick.color = '#475569'; // Heavily Cracked
@@ -1027,6 +1004,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           // If no balls are left, player loses a life!
           if (state.balls.length === 0) {
             state.lives -= 1;
+            haptics.ballLost();
             state.currentCombo = 0; // Reset combo
 
             // Dramatic slow-motion penalty to give player time to process and breathe
@@ -1549,37 +1527,13 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
       // Draw Launch Banner / Guide if awaiting click
       if (state.isFirstLaunch && state.balls.length > 0) {
-        const secs = state.staticSeconds || 0;
-        let text = 'CLIQUE OU PRESSIONE [ESPAÇO] PARA LANÇAR';
-        let color = 'rgba(6, 182, 212, 0.85)'; // cyan
-        let font = 'bold 15px sans-serif';
-
-        if (secs >= 4 && secs < 7) {
-          text = 'EI, VOCÊ ESTÁ AÍ? LANÇA A BOLA! 💤';
-          color = '#eab308'; // yellow
-          font = 'bold 16px sans-serif';
-        } else if (secs >= 7 && secs < 10) {
-          text = '⚠️ DETECTOR DE PREGUIÇA ATIVO! PERDENDO PONTOS! ⚠️';
-          color = '#f97316'; // orange
-          font = 'bold 17px sans-serif';
-        } else if (secs >= 10) {
-          const timeLeft = Math.max(1, 12 - secs);
-          text = `💥 A BOLA VAI EXPLODIR EM ${timeLeft} SEGUNDOS!!! 💥`;
-          // Pulse between orange and red
-          color = Date.now() % 500 < 250 ? '#ef4444' : '#f97316';
-          font = 'bold 19px "Courier New", Courier, monospace';
-          
-          // Gently vibrate the paddle to show physical stress!
-          state.paddle.x += (Math.random() - 0.5) * 4;
-        }
-
-        ctx.fillStyle = color;
-        ctx.font = font;
+        ctx.fillStyle = 'rgba(6, 182, 212, 0.9)';
+        ctx.font = 'bold 15px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(
-          text,
+          'TOQUE EM [LANÇAR] OU CLIQUE NA TELA PARA INICIAR',
           LOGICAL_WIDTH / 2,
-          LOGICAL_HEIGHT - 120
+          LOGICAL_HEIGHT / 2 + 50
         );
       }
 
@@ -1620,14 +1574,17 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   }, [isPlaying, isPaused]);
 
   return (
-    <div className="w-full flex flex-col gap-3">
-      {/* HUD Header Bar - fully responsive, non-overlapping, above the canvas! */}
+    <div className="w-full flex flex-col gap-2 sm:gap-3">
+      {/* HUD Header Bar - compact and non-overlapping */}
       <GameHUD
         score={hudStats.score}
         wave={hudStats.wave}
         lives={hudStats.lives}
         combo={hudStats.combo}
       />
+
+      {/* Active Power-up timer bars ribbon - above canvas, non-intrusive */}
+      <PowerUpTimers activePowerUps={hudStats.activePowerUps} />
 
       {/* Canvas container with aspect-ratio */}
       <div className="relative w-full aspect-[4/3] bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 shadow-2xl touch-none">
@@ -1639,10 +1596,49 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           className="w-full h-full block cursor-crosshair select-none touch-none"
           style={{ imageRendering: 'auto' }}
         />
-
-        {/* Active Power-up timer bars bottom rail */}
-        <PowerUpTimers activePowerUps={hudStats.activePowerUps} />
       </div>
+
+      {/* Dedicated Ergonomic Mobile Controls Dock */}
+      <MobileControls
+        paddleNormalizedX={paddleNormalizedX}
+        onMoveDelta={(deltaNorm) => {
+          const state = stateRef.current;
+          state.paddle.x += deltaNorm * LOGICAL_WIDTH;
+          state.paddle.x = Math.max(0, Math.min(LOGICAL_WIDTH - state.paddle.width, state.paddle.x));
+          state.mousePos.x = state.paddle.x + state.paddle.width / 2;
+          state.controlMode = 'mouse';
+        }}
+        onSetPosition={(normX) => {
+          const state = stateRef.current;
+          const targetX = normX * LOGICAL_WIDTH - state.paddle.width / 2;
+          state.paddle.x = Math.max(0, Math.min(LOGICAL_WIDTH - state.paddle.width, targetX));
+          state.mousePos.x = state.paddle.x + state.paddle.width / 2;
+          state.controlMode = 'mouse';
+        }}
+        onMoveStep={(direction) => {
+          const state = stateRef.current;
+          state.paddle.x += direction * 35;
+          state.paddle.x = Math.max(0, Math.min(LOGICAL_WIDTH - state.paddle.width, state.paddle.x));
+          state.mousePos.x = state.paddle.x + state.paddle.width / 2;
+          state.controlMode = 'mouse';
+        }}
+        onStartMoveContinuous={(direction) => {
+          stateRef.current.virtualKeyMove = direction;
+          stateRef.current.controlMode = 'mouse';
+        }}
+        onStopMoveContinuous={() => {
+          stateRef.current.virtualKeyMove = 0;
+        }}
+        onActionTrigger={() => {
+          launchBalls();
+          const state = stateRef.current;
+          if (state.activePowerUps.some((p) => p.type === 'laser')) {
+            fireLasers();
+          }
+        }}
+        isStickyBallActive={stateRef.current.balls.some((b) => b.stickyToPaddle)}
+        isLaserActive={hudStats.activePowerUps.some((p) => p.type === 'laser')}
+      />
     </div>
   );
 };

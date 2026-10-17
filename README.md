@@ -50,8 +50,10 @@
 
 | Dispositivo / Entrada | Ação | Descrição |
 | :--- | :--- | :--- |
-| **Mouse / Touch** | Mover Raquete | Arraste o cursor ou deslize o dedo na tela para mover a raquete lateralmente. |
-| **Clique / Toque** | Lançar Bola | Libera a bola presa na raquete no início da partida ou com o power-up magnético. |
+| **Touchpad Neon (Mobile)** | Mover Raquete | Deslize na barra de controle inferior (sem tapar a raquete nem a bola na tela). |
+| **Botões Arcade (Mobile)** | Mover Raquete | Botões virtuais `◄` e `►` com aceleração contínua e sensibilidade regulável. |
+| **Botão de Ação (Mobile)** | Lançar / Laser | Botão tátil dedicado para disparar laser contínuo ou lançar a bola com vibração háptica. |
+| **Mouse / Touch na Tela** | Mover Raquete | Arraste o cursor ou deslize na tela para guiar a raquete lateralmente. |
 | **Setas / `A` / `D`** | Mover Raquete | Controle clássico pelo teclado. |
 | **`Espaço`** | Lançar Bola / Atirar | Libera a bola presa ou dispara os canhões laser quando equipados. |
 | **`P` ou Botão de Pausa** | Pausar Jogo | Pausa e congela a partida sem perder seu progresso. |

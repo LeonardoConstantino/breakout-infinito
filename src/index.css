@@ -7,6 +7,13 @@
   --font-mono: "Fira Code", monospace;
 }
 
+/* Prevent elastic bounce, pull-to-refresh reload and selection during gameplay */
+html, body {
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Custom scrollbar for high scores */
 .scrollbar-thin::-webkit-scrollbar {
   width: 5px;
@@ -21,4 +28,3 @@
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.25);
 }
-

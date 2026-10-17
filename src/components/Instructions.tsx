@@ -50,12 +50,12 @@ export const Instructions: React.FC<InstructionsProps> = ({ isOpen, onClose }) =
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-slate-400">
                   <div className="bg-slate-800/40 p-3 rounded-lg border border-slate-800/80">
-                    <span className="font-semibold text-cyan-400 block mb-1">Mouse ou Touch</span>
-                    Mova o cursor/toque para os lados para guiar o paddle. Clique na tela para lançar a bola ou disparar lasers!
+                    <span className="font-semibold text-cyan-400 block mb-1">Mobile & Touch</span>
+                    Use a <strong>Barra Tátil Neon</strong> na parte inferior (seu dedo nunca cobre a raquete nem a bola) ou alterne para <strong>Botões Arcade (◄ ►)</strong> com sensibilidade regulável. Toque no botão de <strong>AÇÃO</strong> para lançar bolas e disparar rajadas de laser com vibração háptica!
                   </div>
                   <div className="bg-slate-800/40 p-3 rounded-lg border border-slate-800/80">
-                    <span className="font-semibold text-cyan-400 block mb-1">Teclado</span>
-                    Use <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-xs text-slate-200">Seta Esquerda</kbd> e <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-xs text-slate-200">Seta Direita</kbd> ou <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-xs text-slate-200">A / D</kbd> para mover. <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-xs text-slate-200">Espaço</kbd> lança a bola ou atira!
+                    <span className="font-semibold text-cyan-400 block mb-1">Teclado & Mouse</span>
+                    Mova o mouse ou use <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-xs text-slate-200">Setas</kbd> ou <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-xs text-slate-200">A / D</kbd> para mover. <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-xs text-slate-200">Espaço</kbd> ou clique lança a bola ou atira lasers.
                   </div>
                 </div>
               </div>

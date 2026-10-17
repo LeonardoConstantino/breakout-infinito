@@ -178,10 +178,10 @@ export default function App() {
       </header>
 
       {/* Main Container Layout */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 md:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
+      <main className={`flex-1 max-w-7xl w-full mx-auto ${gameState === 'playing' ? 'p-1 sm:p-4' : 'p-2 sm:p-4 md:p-6 lg:p-8'} grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-6 items-start`}>
         
         {/* Game viewport column */}
-        <div className="lg:col-span-8 flex flex-col gap-3 sm:gap-4">
+        <div className="lg:col-span-8 flex flex-col gap-2 sm:gap-4">
           <AnimatePresence mode="wait">
             
             {/* 1. MENU STATE */}
@@ -259,21 +259,23 @@ export default function App() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex flex-col gap-4"
+                className="flex flex-col gap-2 sm:gap-3"
               >
-                {/* Active Match HUD and Pause toolbar */}
-                <div className="flex items-center justify-between bg-slate-950/60 border border-slate-900/80 p-3 rounded-2xl">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-ping"></div>
-                    <span className="text-xs font-mono text-slate-400 font-semibold tracking-wider">MODO SOBREVIVÊNCIA DECOLADO</span>
+                {/* Active Match Toolbar */}
+                <div className="flex items-center justify-between bg-slate-950/70 border border-slate-900/80 px-3 py-1.5 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-ping"></div>
+                    <span className="text-[10px] sm:text-xs font-mono text-slate-400 font-semibold tracking-wider">
+                      SOBREVIVÊNCIA
+                    </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
                     <button
                       onClick={() => setIsPaused(!isPaused)}
-                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-xs font-bold text-slate-300 hover:text-white rounded-lg border border-slate-800 transition-all flex items-center gap-1.5 cursor-pointer"
+                      className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-[11px] font-bold text-slate-300 hover:text-white rounded-lg border border-slate-800 transition-all flex items-center gap-1 cursor-pointer"
                     >
-                      <Pause size={12} />
+                      <Pause size={11} />
                       <span>{isPaused ? "Retomar" : "Pausar"}</span>
                     </button>
                     
@@ -283,9 +285,9 @@ export default function App() {
                           setGameState('menu');
                         }
                       }}
-                      className="px-3 py-1.5 bg-red-950/40 hover:bg-red-950/80 text-xs font-bold text-red-400 hover:text-red-300 rounded-lg border border-red-900/40 transition-all flex items-center gap-1.5 cursor-pointer"
+                      className="px-2.5 py-1 bg-red-950/40 hover:bg-red-950/80 text-[11px] font-bold text-red-400 hover:text-red-300 rounded-lg border border-red-900/40 transition-all flex items-center gap-1 cursor-pointer"
                     >
-                      <LogOut size={12} />
+                      <LogOut size={11} />
                       <span>Sair</span>
                     </button>
                   </div>
@@ -419,7 +421,7 @@ export default function App() {
         </div>
 
         {/* High score and scoreboard column (stacked or sidebar) */}
-        <div className="lg:col-span-4 h-full">
+        <div className={`lg:col-span-4 h-full ${gameState === 'playing' ? 'hidden lg:block' : 'block'}`}>
           <Leaderboard highlightLatestScore={latestScore} />
         </div>
       </main>
